@@ -4,8 +4,10 @@ from timeit import default_timer as timer
 import copy
 
 from keras_wrapper.cnn_model import saveModel, loadModel
-from keras_wrapper.extra.callbacks import PrintPerformanceMetricOnEpochEndOrEachNUpdates
+from keras_wrapper.extra import evaluation
+from keras_wrapper.extra.callbacks import EvalPerformance
 from keras_wrapper.extra.read_write import *
+from keras_wrapper.utils import decode_multilabel
 
 from config import load_parameters
 from data_engine.prepare_data import build_dataset
@@ -28,7 +30,13 @@ def train_model(params):
     ###########
 
     ########### Build model
-    if(params['RELOAD'] == 0): # build new model
+    if params['REUSE_MODEL_NAME'] is not None and params['REUSE_MODEL_RELOAD'] > 0:
+        ing_model = loadModel(params['REUSE_MODEL_NAME'], params['REUSE_MODEL_RELOAD'])
+        ing_model.setName(model_name=params['MODEL_NAME'], store_path=params['STORE_PATH'])
+        ing_model.changeClassifier(params, last_layer=params['LAST_LAYER'])
+        ing_model.updateLogger(force=True)
+        
+    elif(params['RELOAD'] == 0): # build new model
         ing_model = Ingredients_Model(params, type=params['MODEL_TYPE'], verbose=params['VERBOSE'],
                                 model_name=params['MODEL_NAME'], store_path=params['STORE_PATH'])
 
@@ -38,9 +46,11 @@ def train_model(params):
 
     else: # resume from previously trained model
         ing_model = loadModel(params['STORE_PATH'], params['RELOAD'])
-        ing_model.setOptimizer()
+    # Update optimizer either if we are loading or building a model
+    ing_model.params = params
+    ing_model.setOptimizer()
     ###########
-    
+
     
     ########### Callbacks
     callbacks = buildCallbacks(params, ing_model, dataset)
@@ -89,19 +99,35 @@ def apply_model(params):
 
         # Apply model predictions
         params_prediction = {'batch_size': params['BATCH_SIZE'], 'n_parallel_loaders': params['PARALLEL_LOADERS'],
-                             'predict_on_sets': [s], 'normalize_images': params['NORMALIZE_IMAGES'], 
+                             'predict_on_sets': [s], 'normalize': params['NORMALIZE_IMAGES'], 
                              'mean_substraction': params['MEAN_SUBSTRACTION']}
         predictions = ing_model.predictNet(dataset, params_prediction)[s]
         
         # Format predictions
-        if params['TRAINING_STAGE'] == 'CAM':
-            predictions = predictions[0]
-        predictions = ing_model.decode_predictions(predictions, 1, # not used
-                                             dataset.extra_variables['idx2word_binary'])
+        predictions = decode_multilabel(predictions, # not used
+                                        dataset.extra_variables['idx2word_binary'],
+                                        min_val=params['MIN_PRED_VAL'], verbose=1)
         
         # Store result
         filepath = ing_model.model_path+'/'+ s +'_labels.pred' # results file
         listoflists2file(filepath, predictions)
+        
+        ## Evaluate result
+        extra_vars = dict()
+        extra_vars[s] = dict()
+        extra_vars[s]['word2idx'] = dataset.extra_variables['word2idx_binary']
+        exec("extra_vars[s]['references'] = dataset.Y_"+s+"[params['OUTPUTS_IDS_DATASET'][0]]")
+
+        for metric in params['METRICS']:
+            logging.info('Evaluating on metric ' + metric)
+
+            # Evaluate on the chosen metric
+            metrics = evaluation.select[metric](
+                        pred_list=predictions,
+                        verbose=1,
+                        extra_vars=extra_vars,
+                        split=s)
+        
     ###########
 
     
@@ -124,7 +150,8 @@ def buildCallbacks(params, model, dataset):
                 extra_vars[s] = dict()
                 exec ("extra_vars[s]['references'] = dataset.Y_" + s)
             vocab = None
-            is_text = False
+            is_multilabel = False
+            multilabel_idx = None
 
         elif params['CLASSIFICATION_TYPE'] == 'multi-label':
             for s in params['EVAL_ON_SETS']:
@@ -132,12 +159,20 @@ def buildCallbacks(params, model, dataset):
                 extra_vars[s]['word2idx'] = dataset.extra_variables['word2idx_binary']
                 exec("extra_vars[s]['references'] = dataset.Y_"+s+"[params['OUTPUTS_IDS_DATASET'][0]]")
             vocab = dataset.extra_variables['idx2word_binary']
-            is_text = True
+            is_multilabel = True
+            if 'Food_and_Ingredients' in params['DATASET_NAME']:
+                multilabel_idx = 0
+            else:
+                multilabel_idx = None
 
-        callback_metric = PrintPerformanceMetricOnEpochEndOrEachNUpdates(model, dataset, gt_id=params['OUTPUTS_IDS_DATASET'][0],
-                                                                   metric_name=params['METRICS'], set_name=params['EVAL_ON_SETS'],
+        callback_metric = EvalPerformance(model, dataset, gt_id=params['OUTPUTS_IDS_DATASET'][0],
+                                                                   metric_name=params['METRICS'],
+                                                                   set_name=params['EVAL_ON_SETS'],
                                                                    batch_size=params['BATCH_SIZE'],
-                                                                   is_text=is_text, index2word_y=vocab, # text info
+                                                                   is_multilabel=is_multilabel,
+                                                                   multilabel_idx=multilabel_idx,
+                                                                   min_pred_multilabel=params['MIN_PRED_VAL'],
+                                                                   index2word_y=vocab, # text info
                                                                    save_path=model.model_path,
                                                                    reload_epoch=params['RELOAD'],
                                                                    start_eval_on_epoch=params['START_EVAL_ON_EPOCH'],

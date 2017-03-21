@@ -115,6 +115,8 @@ tramp
 *.pred
 *.txt
 */trained_models
+visualization/tmp/*
+trained_models/*
 
 # Running files
 .fuse_hidden*

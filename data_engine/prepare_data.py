@@ -62,6 +62,18 @@ def build_dataset(params):
             # Insert vocabularies
             ds.extra_variables['word2idx_binary'] = word2idx
             ds.extra_variables['idx2word_binary'] = idx2word
+            
+            if 'Food_and_Ingredients' in params['DATASET_NAME']:
+                
+                # train split
+                ds.setOutput(base_path + '/' + params['LABELS_FILES_FOOD']['train'], 'train',
+                             type='categorical', id=params['OUTPUTS_IDS_DATASET'][1])
+                # val split
+                ds.setOutput(base_path + '/' + params['LABELS_FILES_FOOD']['val'], 'val',
+                             type='categorical', id=params['OUTPUTS_IDS_DATASET'][1])
+                # test split
+                ds.setOutput(base_path + '/' + params['LABELS_FILES_FOOD']['test'], 'test',
+                             type='categorical', id=params['OUTPUTS_IDS_DATASET'][1])
 
 
         # We have finished loading the dataset, now we can store it for using it in the future
@@ -114,6 +126,6 @@ def convertIngredientsList2BinaryClasses(base_path, data, multilabels):
                     if w in vocabulary.keys():
                         classes[set_name][-1][vocabulary[w]] = 1
 
-    
+ 
     inv_vocabulary = {v: k for k, v in vocabulary.items()}
     return [classes, vocabulary, inv_vocabulary]

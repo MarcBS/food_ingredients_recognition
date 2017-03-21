@@ -11,6 +11,7 @@ from keras.optimizers import Adam
 
 from keras.applications.resnet50 import ResNet50
 from keras.applications.vgg16 import VGG16
+from keras.applications.inception_v3 import InceptionV3
 
 from keras_wrapper.cnn_model import Model_Wrapper
 
@@ -84,19 +85,14 @@ class Ingredients_Model(Model_Wrapper):
     def setOptimizer(self, metrics=['acc']):
 
         """
-            Sets a new optimizer for the Translation_Model.
+            Sets a new optimizer for the model.
         """
 
-        # compile differently depending if our model is 'Sequential' or 'Graph'
-        if self.verbose > 0:
-            logging.info("Preparing optimizer and compiling.")
-
-        if self.params['OPTIMIZER'] == 'adam':
-            optimizer = Adam(lr=self.params['LR'])
-        else:
-            logging.info('\tWARNING: The modification of the LR is not implemented for the chosen optimizer.')
-            optimizer = self.params['OPTIMIZER']
-        self.model.compile(optimizer=optimizer, loss=self.params['LOSS'], metrics=metrics)
+        super(self.__class__, self).setOptimizer(lr=self.params['LR'],
+                                                 loss=self.params['LOSS'],
+                                                 optimizer=self.params['OPTIMIZER'],
+                                                 loss_weights=self.params.get('LOSS_WIGHTS', None),
+                                                 sample_weight_mode='temporal' if self.params.get('SAMPLE_WEIGHTS', False) else None)
 
     
     def setName(self, model_name, store_path=None, clear_dirs=True):
@@ -177,6 +173,50 @@ class Ingredients_Model(Model_Wrapper):
     #       PREDEFINED MODELS
     # ------------------------------------------------------- #
 
+    def Arch_D(self, params):
+
+        self.ids_inputs = params["INPUTS_IDS_MODEL"]
+        self.ids_outputs = params["OUTPUTS_IDS_MODEL"]
+
+        activation_type = params['CLASSIFIER_ACTIVATION']
+        activation_type_food = params['CLASSIFIER_ACTIVATION_FOOD']
+        
+        nOutput = params['NUM_CLASSES']
+        nOutput_food = params['NUM_CLASSES_FOOD']
+
+        ##################################################
+        # Load VGG16 model pre-trained on ImageNet
+        self.model = VGG16(weights='imagenet',
+                            layers_lr=params['PRE_TRAINED_LR_MULTIPLIER'],
+                            input_name=self.ids_inputs[0])
+
+        # Recover input layer
+        image = self.model.get_layer(self.ids_inputs[0]).output
+
+        # Recover last layer kept from original model: 'fc2'
+        fc1_out = self.model.get_layer('fc1').output
+        ##################################################
+
+        # Ingredients classification path
+        fc_ing = Dense(1024, name='fc_ing',
+                  W_learning_rate_multiplier=params['NEW_LAST_LR_MULTIPLIER'],
+                  b_learning_rate_multiplier=params['NEW_LAST_LR_MULTIPLIER'])(fc1_out)
+        ing_out = Dense(nOutput, activation=activation_type, name=self.ids_outputs[0],
+                  W_learning_rate_multiplier=params['NEW_LAST_LR_MULTIPLIER'],
+                  b_learning_rate_multiplier=params['NEW_LAST_LR_MULTIPLIER'])(fc_ing)
+        
+        
+        # Food classification path
+        fc_food = Dense(4096, name='fc_food',
+                  W_learning_rate_multiplier=params['NEW_LAST_LR_MULTIPLIER'],
+                  b_learning_rate_multiplier=params['NEW_LAST_LR_MULTIPLIER'])(fc1_out)
+        food_out = Dense(nOutput_food, activation=activation_type_food, name=self.ids_outputs[1],
+                  W_learning_rate_multiplier=params['NEW_LAST_LR_MULTIPLIER'],
+                  b_learning_rate_multiplier=params['NEW_LAST_LR_MULTIPLIER'])(fc_food)
+
+        self.model = Model(input=image, output=[ing_out, food_out])
+    
+    
     def VGG16(self, params):
 
         self.ids_inputs = params["INPUTS_IDS_MODEL"]
@@ -205,6 +245,32 @@ class Ingredients_Model(Model_Wrapper):
 
         self.model = Model(input=image, output=x)
 
+
+    def Inception(self, params):
+
+        self.ids_inputs = params["INPUTS_IDS_MODEL"]
+        self.ids_outputs = params["OUTPUTS_IDS_MODEL"]
+
+        activation_type = params['CLASSIFIER_ACTIVATION']
+        nOutput = params['NUM_CLASSES']
+
+        ##################################################
+        # Load VGG16 model pre-trained on ImageNet
+        self.model = InceptionV3(weights='imagenet')
+
+        # Recover input layer
+        image = self.model.get_layer(self.ids_inputs[0]).output
+
+        # Recover last layer kept from original model: 'fc2'
+        x = self.model.get_layer('flatten').output
+        ##################################################
+
+        # Create last layer (classification)
+        x = Dense(nOutput, activation=activation_type, name=self.ids_outputs[0],
+                  W_learning_rate_multiplier=params['NEW_LAST_LR_MULTIPLIER'],
+                  b_learning_rate_multiplier=params['NEW_LAST_LR_MULTIPLIER'])(x)
+
+        self.model = Model(input=image, output=x)
 
     def ResNet50(self, params):
 
@@ -236,3 +302,51 @@ class Ingredients_Model(Model_Wrapper):
 
         self.model = Model(input=image, output=x)
 
+        
+    def TestModel(self, params):
+        
+        self.ids_inputs = params["INPUTS_IDS_MODEL"]
+        self.ids_outputs = params["OUTPUTS_IDS_MODEL"]
+
+        activation_type = params['CLASSIFIER_ACTIVATION']
+        nOutput = params['NUM_CLASSES']
+
+        ##################################################
+        # Load ResNet50 model pre-trained on ImageNet
+        self.model = ResNet50(weights='imagenet',
+                              layers_lr=params['PRE_TRAINED_LR_MULTIPLIER'],
+                              input_shape=tuple([params['IMG_SIZE_CROP'][2]] + params['IMG_SIZE_CROP'][:2]),
+                              include_top=False, input_name=self.ids_inputs[0])
+
+        # Recover input layer
+        image = self.model.get_layer(self.ids_inputs[0]).output
+        ##################################################
+
+        # Create last layer (classification)
+        x = Flatten()(image)
+        x = Dense(nOutput, activation=activation_type, name=self.ids_outputs[0],
+                  W_learning_rate_multiplier=params['NEW_LAST_LR_MULTIPLIER'],
+                  b_learning_rate_multiplier=params['NEW_LAST_LR_MULTIPLIER'])(x)
+
+        self.model = Model(input=image, output=x)
+
+        
+    # Auxiliary functions
+    def changeClassifier(self, params, last_layer='flatten'):
+        
+        self.ids_inputs = params["INPUTS_IDS_MODEL"]
+        self.ids_outputs = params["OUTPUTS_IDS_MODEL"]
+
+        activation_type = params['CLASSIFIER_ACTIVATION']
+        
+        ########
+        inp = self.model.get_layer(self.ids_inputs[0]).output
+        
+        last = self.model.get_layer(last_layer).output
+        
+        out = Dense(params['NUM_CLASSES'], activation=activation_type, name=self.ids_outputs[0],
+                  W_learning_rate_multiplier=params['NEW_LAST_LR_MULTIPLIER'],
+                  b_learning_rate_multiplier=params['NEW_LAST_LR_MULTIPLIER'])(last)
+        
+        self.model = Model(input=inp, output=out)
+        
