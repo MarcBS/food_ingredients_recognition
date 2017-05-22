@@ -2,6 +2,7 @@ import logging
 import numpy as np
 from timeit import default_timer as timer
 import copy
+import sys
 
 from keras_wrapper.cnn_model import saveModel, loadModel
 from keras_wrapper.extra import evaluation
@@ -188,8 +189,16 @@ def buildCallbacks(params, model, dataset):
 
 
 if __name__ == "__main__":
- 
-    params = load_parameters()
+
+    # Use 'config_file' command line parameter for changing the name of the config file used
+    cf = 'config'
+    for arg in sys.argv[1:]:
+        k, v = arg.split('=')
+        if k == 'config_file':
+            cf = v
+    cf = __import__(cf)
+    params = cf.load_parameters()
+
     if(params['MODE'] == 'training'):
         logging.info('Running training.')
         train_model(params)

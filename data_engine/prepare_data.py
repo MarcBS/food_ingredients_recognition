@@ -18,7 +18,7 @@ def build_dataset(params):
             silence=True
 
         base_path = params['DATA_ROOT_PATH']
-        ds = Dataset(params['DATASET_NAME'], base_path+'/images', silence=silence)
+        ds = Dataset(params['DATASET_NAME'], base_path+params.get('SUFFIX_DATASET', '/images'), silence=silence)
 
         ##### INPUT DATA
         ### IMAGES
@@ -53,7 +53,8 @@ def build_dataset(params):
             logging.info('Preprocessing list of ingredients for assigning vocabulary as image classes.')
             [classes, word2idx, idx2word] = convertIngredientsList2BinaryClasses(base_path,
                                                                                  params['LABELS_FILES'],
-                                                                                 params['CLASSES_PATH'])
+                                                                                 params['CLASSES_PATH'],
+                                                                                 type_list=params.get('LABELS_TYPE_LIST', 'identifiers'))
             # Insert them as outputs
             ds.setOutput(classes['train'], 'train', type='binary', id=params['OUTPUTS_IDS_DATASET'][0])
             ds.setOutput(classes['val'], 'val', type='binary', id=params['OUTPUTS_IDS_DATASET'][0])
@@ -87,41 +88,50 @@ def build_dataset(params):
     return ds
 
 
-def convertIngredientsList2BinaryClasses(base_path, data, multilabels):
+def convertIngredientsList2BinaryClasses(base_path, data, multilabels, type_list='identifiers'):
 
     repeat_imgs = 1
     
     ing_list = []
     counter = Counter()
     with open(base_path+'/'+multilabels) as f:
-        for line in f:
+        for pos_ing, line in enumerate(f):
             # read ingredients
-            ing = line.rstrip('\n').split(',')
-            ing = map(lambda x: x.lower(), ing)
-            ing_list.append(ing)
+            if type_list == 'identifiers':
+                ing = line.rstrip('\n').split(',')
+                ing = map(lambda x: x.lower(), ing)
+                ing_list.append(ing)
+            elif type_list == 'words':
+                ing = line.rstrip('\n')
+                ing = ing.lower()
+                ing_list.append(ing)
+                ing = [ing]
             counter.update(ing)
 
     vocab_count = counter.most_common()
-    
+
     vocabulary = {}
     list_words = []
     for i, (word, count) in enumerate(vocab_count):
         vocabulary[word] = i
         list_words.append(word)
     len_vocab = len(vocabulary)
-    
-    
+
+
     # Preprocess each data split
     classes = dict()
     for set_name, file in data.iteritems():
         classes[set_name] = []
         with open(base_path+'/'+file) as f:
             for idx_img, line in enumerate(f):
-                pos_ing = int(line.rstrip('\n'))
                 classes[set_name].append(np.zeros((len_vocab,)))
-                    
+                if type_list=='identifiers':
+                    pos_ing = int(line.rstrip('\n'))
+                    ings = ing_list[pos_ing]
+                elif type_list=='words':
+                    ings = line.rstrip('\n').split(',')
+
                 # insert all ingredients
-                ings = ing_list[pos_ing]
                 for w in ings:
                     if w in vocabulary.keys():
                         classes[set_name][-1][vocabulary[w]] = 1
