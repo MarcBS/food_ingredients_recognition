@@ -37,30 +37,32 @@ def load_parameters():
         if 'Ingredients101' in DATA_ROOT_PATH:
             DATASET_NAME = 'Food_Ingredients101'  # Dataset name
             NUM_CLASSES = 446 # 13  # number of labels/classes of the dataset
-            CLASSES_PATH = 'Annotations/ingredients.txt'
+            CLASSES_PATH = 'annotations/ingredients.txt'
 
-            IMG_FILES = {'train': 'Annotations/train_split.txt',  # Images files
-                         'val': 'Annotations/val_split.txt',
-                         'test': 'Annotations/test.txt'
+            IMG_FILES = {'train': 'annotations/train_split.txt',  # Images files
+                         'val': 'annotations/val_split.txt',
+                         'test': 'annotations/test.txt'
                         }
-            LABELS_FILES = {'train': 'Annotations/train_labels.txt',  # Labels files
-                            'val': 'Annotations/val_labels.txt',
-                            'test': 'Annotations/test_labels.txt',
+            LABELS_FILES = {'train': 'annotations/train_labels.txt',  # Labels files
+                            'val': 'annotations/val_labels.txt',
+                            'test': 'annotations/test_labels.txt',
                             }
             
         elif 'Recipes5k' in DATA_ROOT_PATH:
             DATASET_NAME = 'Food_Recipes5k'  # Dataset name
             NUM_CLASSES = 3213  # number of labels/classes of the dataset
-            CLASSES_PATH = 'Annotations/ingredients_Recipes5k.txt'
+            CLASSES_PATH = 'annotations/ingredients_Recipes5k.txt'
 
-            IMG_FILES = {'train': 'Annotations/train_images.txt',  # Images files
-                         'val': 'Annotations/val_images.txt',
-                         'test': 'Annotations/test_images.txt'
+            IMG_FILES = {'train': 'annotations/train_images.txt',  # Images files
+                         'val': 'annotations/val_images.txt',
+                         'test': 'annotations/test_images.txt'
                         }
-            LABELS_FILES = {'train': 'Annotations/train_labels.txt',  # Labels files
-                            'val': 'Annotations/val_labels.txt',
-                            'test': 'Annotations/test_labels.txt',
+            LABELS_FILES = {'train': 'annotations/train_labels.txt',  # Labels files
+                            'val': 'annotations/val_labels.txt',
+                            'test': 'annotations/test_labels.txt',
                             }
+
+        OUTPUTS_TYPES = 'binary'
 
         # Evaluation
         METRICS = ['multilabel_metrics']  # Metric used for evaluating model after each epoch. Possible values: 'multiclass' (see more information in utils/evaluation.py
@@ -141,7 +143,7 @@ def load_parameters():
     # Training parameters
     MAX_EPOCH = 200  # Stop when computed this number of epochs
     PATIENCE = 20    # number of epoch we will wait to possibly obtain a higher accuracy
-    BATCH_SIZE = 10
+    BATCH_SIZE = 1
     PARALLEL_LOADERS = 8  # parallel data batch loaders
     EPOCHS_FOR_SAVE = 1  # number of epochs between model saves
     WRITE_VALID_SAMPLES = True  # Write valid samples in file
@@ -157,7 +159,7 @@ def load_parameters():
     MODEL_TYPE = NETWORK_TYPE
 
     # Results plot and models storing parameters
-    EXTRA_NAME = '3_inception_recipes5k_higherLR' # custom name assigned to the model
+    EXTRA_NAME = 'test_model' # custom name assigned to the model
     MODEL_NAME = MODEL_TYPE+'_'+EXTRA_NAME
     
     REUSE_MODEL_NAME = None #'trained_models/ResNet50_5_resnet50_ingredients101' # 'trained_models/Inception_inception_recipes_v2' # None default
@@ -166,9 +168,9 @@ def load_parameters():
 
     VERBOSE = 1  # Verbosity
     REBUILD_DATASET = True  # build again (True) or use stored instance (False)
-    MODE = 'predict'  # 'training' or 'predict' (if 'predict' then RELOAD must be greater than 0 and EVAL_ON_SETS will be used)
+    MODE = 'training'  # 'training' or 'predict' (if 'predict' then RELOAD must be greater than 0 and EVAL_ON_SETS will be used)
 
-    RELOAD = 28  # If 0 start training from scratch, otherwise the model saved on epoch 'RELOAD' will be used
+    RELOAD = 0  # If 0 start training from scratch, otherwise the model saved on epoch 'RELOAD' will be used
     STORE_PATH = 'trained_models/' + MODEL_NAME  # models and evaluation results
     
 

@@ -1,1 +1,1 @@
-PYTHONPATH=$PYTHONPATH:/media/HDD_3TB/marc/multimodal_keras_wrapper:~/code/keras python -u main.py
+PYTHONPATH=$PYTHONPATH:/media/HDD_3TB/eaguilar/lib/new/Theano:/media/HDD_3TB/marc/multimodal_keras_wrapper:~/code/keras CUDA_VISIBLE_DEVICES=0 THEANO_FLAGS='device=cuda,optimizer=fast_compile,optimizer_including=fusion,lib.cnmem=0.3' python -u main.py

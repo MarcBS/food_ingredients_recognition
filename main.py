@@ -29,7 +29,7 @@ def train_model(params):
     ########### Load data
     dataset = build_dataset(params)
     ###########
-
+    
     ########### Build model
     if params['REUSE_MODEL_NAME'] is not None and params['REUSE_MODEL_RELOAD'] > 0:
         ing_model = loadModel(params['REUSE_MODEL_NAME'], params['REUSE_MODEL_RELOAD'])
@@ -149,29 +149,19 @@ def buildCallbacks(params, model, dataset):
             extra_vars['n_classes'] = params['NUM_CLASSES']
             for s in params['EVAL_ON_SETS']:
                 extra_vars[s] = dict()
-                exec ("extra_vars[s]['references'] = dataset.Y_" + s)
             vocab = None
-            is_multilabel = False
-            multilabel_idx = None
 
         elif params['CLASSIFICATION_TYPE'] == 'multi-label':
             for s in params['EVAL_ON_SETS']:
                 extra_vars[s] = dict()
                 extra_vars[s]['word2idx'] = dataset.extra_variables['word2idx_binary']
-                exec("extra_vars[s]['references'] = dataset.Y_"+s+"[params['OUTPUTS_IDS_DATASET'][0]]")
             vocab = dataset.extra_variables['idx2word_binary']
-            is_multilabel = True
-            if 'Food_and_Ingredients' in params['DATASET_NAME']:
-                multilabel_idx = 0
-            else:
-                multilabel_idx = None
 
         callback_metric = EvalPerformance(model, dataset, gt_id=params['OUTPUTS_IDS_DATASET'][0],
                                                                    metric_name=params['METRICS'],
                                                                    set_name=params['EVAL_ON_SETS'],
                                                                    batch_size=params['BATCH_SIZE'],
-                                                                   is_multilabel=is_multilabel,
-                                                                   multilabel_idx=multilabel_idx,
+                                                                   output_types=params['OUTPUTS_TYPES'],
                                                                    min_pred_multilabel=params['MIN_PRED_VAL'],
                                                                    index2word_y=vocab, # text info
                                                                    save_path=model.model_path,
@@ -180,7 +170,8 @@ def buildCallbacks(params, model, dataset):
                                                                    write_samples=params['WRITE_VALID_SAMPLES'],
                                                                    write_type='listoflists',
                                                                    extra_vars=extra_vars,
-                                                                   verbose=params['VERBOSE'])
+                                                                   verbose=params['VERBOSE'])#,
+                                                                   #do_plot=False)
         callbacks.append(callback_metric)
 
     
