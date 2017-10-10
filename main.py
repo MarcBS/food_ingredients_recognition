@@ -29,7 +29,7 @@ def train_model(params):
     ########### Load data
     dataset = build_dataset(params)
     ###########
-    
+
     ########### Build model
     if params['REUSE_MODEL_NAME'] is not None and params['REUSE_MODEL_RELOAD'] > 0:
         ing_model = loadModel(params['REUSE_MODEL_NAME'], params['REUSE_MODEL_RELOAD'])
@@ -96,6 +96,10 @@ def apply_model(params):
     
 
     ########### Apply sampling
+    callbacks = buildCallbacks(params, ing_model, dataset)
+    callbacks[0].evaluate(params['RELOAD'], 'epoch')
+
+    """
     for s in params["EVAL_ON_SETS"]:
 
         # Apply model predictions
@@ -128,7 +132,7 @@ def apply_model(params):
                         verbose=1,
                         extra_vars=extra_vars,
                         split=s)
-        
+    """
     ###########
 
     
@@ -162,7 +166,7 @@ def buildCallbacks(params, model, dataset):
                                                                    set_name=params['EVAL_ON_SETS'],
                                                                    batch_size=params['BATCH_SIZE'],
                                                                    output_types=params['OUTPUTS_TYPES'],
-                                                                   min_pred_multilabel=params['MIN_PRED_VAL'],
+                                                                   min_pred_multilabel=params.get('MIN_PRED_VAL', 0),
                                                                    index2word_y=vocab, # text info
                                                                    save_path=model.model_path,
                                                                    reload_epoch=params['RELOAD'],

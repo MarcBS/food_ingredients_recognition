@@ -4,26 +4,28 @@ def load_parameters():
     """
 
     # Input data params
-    #DATA_ROOT_PATH = '/media/HDD_2TB/marc/multimodal_keras_wrapper/data/sample_data/' # Root path to the data
+    DATA_ROOT_PATH = '/media/HDD_3TB/marc/multimodal_keras_wrapper/data/sample_data/' # Root path to the data
     #DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/Ingredients101/'
-    DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/Recipes5k/'
-    CLASSIFICATION_TYPE = 'multi-label' # 'single-label' or 'multi-label'
+    #DATA_ROOT_PATH = '/media/HDD_3TB/DATASETS/Recipes5k/'
+    CLASSIFICATION_TYPE = 'single-label' # 'single-label' or 'multi-label'
 
 
     if CLASSIFICATION_TYPE == 'single-label':
 
         DATASET_NAME = 'Food_Recognition'  # Dataset name
         NUM_CLASSES = 2  # number of labels/classes of the dataset
-        CLASSES_PATH = 'Annotations/classes.txt'
+        CLASSES_PATH = 'classes.txt'
 
-        IMG_FILES = {'train': 'Annotations/train.txt',  # Images files
-                     'val': 'Annotations/val.txt',
-                     'test': 'Annotations/test.txt'
+        IMG_FILES = {'train': 'train.txt',  # Images files
+                     'val': 'val.txt',
+                     'test': 'test.txt'
                     }
-        LABELS_FILES = {'train': 'Annotations/train_labels.txt',  # Labels files
-                        'val': 'Annotations/val_labels.txt',
-                        'test': 'Annotations/test_labels.txt',
+        LABELS_FILES = {'train': 'train_labels.txt',  # Labels files
+                        'val': 'val_labels.txt',
+                        'test': 'test_labels.txt',
                         }
+
+        OUTPUTS_TYPES = 'categorical'
 
         # Evaluation
         METRICS = ['multiclass_metrics']  # Metric used for evaluating model
