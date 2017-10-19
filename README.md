@@ -1,6 +1,6 @@
 # Food Ingredients Recognition through Multi-label Learning
 
-This reopsitory contains the code for applying image-based ingredients recognition through multi-label learning.
+This repository contains the code for applying image-based ingredients recognition through multi-label learning.
 
 ## Usage
 
@@ -25,7 +25,9 @@ The datasets Ingredients101 and Recipes5k were used to evaluate this model:
 If you use this code for any purpose, please, do not forget to cite the following paper:
 
 ```
-TBA
+Bolaños, Marc, Aina Ferrà, and Petia Radeva. 
+"Food Ingredients Recognition through Multi-label Learning." 
+In Proceedings of the 3rd International Workshop on Multimedia Assisted Dietary Management (ICIAPW) arXiv preprint arXiv:1707.08816 (2017).
 ```
 
 ## Contact
