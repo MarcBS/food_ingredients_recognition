@@ -79,9 +79,25 @@ def buildIngredientsMapping(ingredients, blacklist, base_ingredients=None):
     return new_ing, ing_mapping
 
 
+def generateSimplifiedAnnotations(in_list, out_list, clean_list, mapping):
+
+    simplified_ingredients = []
+    with open(in_list, 'r') as in_list:
+        for line in in_list:
+            line = line.rstrip('\n').split(',')
+            # Store all simplified ingredients for each recipe in the list
+            simplified_ingredients.append([clean_list[mapping[ing.lower().strip()]] for ing in line])
+
+    with open(out_list, 'w') as out_list:
+        for recipe in simplified_ingredients:
+            recipe = [ing for ing in recipe if ing]
+            recipe = ','.join(recipe)+'\n'
+            out_list.write(recipe)
+
+
 if __name__ == "__main__":
     #ing2idx, idx2ing = readIngredientsDictionary('ingredients_Recipes5k.txt')
-    ingredients = readIngredientsDictionary('ingredients_Recipes5k.txt')
+    ingredients = readIngredientsDictionary('../annotations/ingredients_Recipes5k.txt')
     print 'Unique ingredients:',len(ingredients)
     blacklist = readBlacklist('blacklist.txt')
     print 'Blacklist terms:',len(blacklist)
@@ -92,3 +108,12 @@ if __name__ == "__main__":
     print 'Clean ingredients:',len(clean_ingredients_list)
 
     #print clean_ingredients_list
+
+    # Generate training files for simplified list of ingredients
+    input_all_list = '../annotations/ingredients_Recipes5k.txt'
+    output_all_list = '../annotations/ingredients_simplified_Recipes5k.txt'
+    print 'Writing simplified list of ingredients...'
+    generateSimplifiedAnnotations(input_all_list, output_all_list, clean_ingredients_list, raw2clean_mapping)
+
+
+    print 'Done!'
