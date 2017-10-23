@@ -113,10 +113,11 @@ tramp
 *.multiclass
 *.AP
 *.pred
-*.txt
+./*.txt
 */trained_models
 visualization/tmp/*
 trained_models/*
+logs/*
 
 # Running files
 .fuse_hidden*
